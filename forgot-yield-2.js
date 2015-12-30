@@ -1,15 +1,24 @@
 'use strict'
-const request = require('request-promise');
+
 const co = require('co');
+const marked = require('marked');
+const fs = require('fs-promise');
+const handlebars = require('handlebars');
 
 co(function *() {
-  let result = request({
-    url: 'https://api.github.com/repos/petkaantonov/bluebird', 
-    json: true,
-    headers: { 'User-Agent': 'express' }
-  });
-  let owner = result.owner.login;
-  console.log(owner);
+  md2html('README');
 }).catch(function(err) {
   console.error(err.stack);
 });
+
+function * md2html(filename) {
+  let md = yield fs.readFile(filename + '.md');
+  let html = marked(md.toString());
+  let template = yield fs.readFile('layout.hbs');
+  let output = handlebars.compile(template.toString())({
+    title: filename,
+    contents: html
+  });
+  yield fs.writeFile(filename + '.html', output);
+  console.log(`Wrote ${filename}.html`);
+}
